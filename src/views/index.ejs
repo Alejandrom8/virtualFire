@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pegasus</title>
+  <style>
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    let map, infoWindow;
+
+    function initMap() {
+      // The map, centered at Uluru
+      map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 4, 
+        center: {lat: 0, lng: 0},
+        mapTypeId: 'satellite'
+      });
+
+      infoWindow = new google.maps.InfoWindow();
+
+      // Try HTML5 geolocation.
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            let pos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            infoWindow.setPosition(pos);
+            infoWindow.setContent("Location found.");
+            infoWindow.open(map);
+            map.setCenter(pos);
+            createMarks(map, pos);
+          },
+          () => {
+            handleLocationError(true, infoWindow, map.getCenter());
+          }
+        );
+      } else {
+        // Browser doesn't support Geolocation
+        handleLocationError(false, infoWindow, map.getCenter());
+      }
+    }
+
+    function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+      infoWindow.setPosition(pos);
+      infoWindow.setContent(
+        browserHasGeolocation
+          ? "Error: The Geolocation service failed."
+          : "Error: Your browser doesn't support geolocation."
+      );
+      infoWindow.open(map);
+    }
+
+    async function getLocalEvents(coords) {
+      try{
+        const response = await fetch(`/wildfires?lat=${coords.lat}&long=${coords.lng}&radius=10000`);
+        if(!response.ok) throw new Error('cannot find wildfires close to your location');
+        let result = await response.json();
+        if (!result.success) throw new Error('There was an error while trying to get the data')
+        return result.data
+      }catch(error) {
+        console.log(error);
+      }
+    }
+
+    async function createMarks (map, coords) {
+      const events = await getLocalEvents(coords);
+      for (let event of events) {
+        let pos = {
+            lat: event.geometry[0].coordinates[1], 
+            lng: event.geometry[0].coordinates[0]
+        };
+        let marker = new google.maps.Marker({
+          position: pos,
+          map: map
+        });
+      }
+    }
+  </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDm7Hz2B8L33wFrz0qtPjbawOEnhLywyXM&callback=initMap"
+  type="text/javascript"></script>
+</body>
+</html>
+
+<!-- buscar fondos de ciencia como del CONACYT o angeles inversores.
+Vender una suscripción.
+
+centrarce 1 min en introducción
+tener bien clara la problemática con datos estadisticos de buenas fuentes.
+1 min presentar la situación actual de la problemática
+2 min parte técnica (en que sonas son aplicables).
+1 min modelo de negocio.
+mencionar fases consecuentes del futuro del proyecto. -->
